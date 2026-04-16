@@ -73,4 +73,4 @@ Requires `Core.jar` from the game directory. The pom defaults to `../../RtR` rel
 mvn package -Drtr.home=/path/to/RtR
 ```
 
-The output JAR is `target/Archipelago-1.0-SNAPSHOT.jar`.
+The output JAR is `target/Archipelago-0.1.jar`.

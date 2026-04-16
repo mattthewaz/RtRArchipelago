@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>rtrmodloader.mods</groupId>
+    <artifactId>Archipelago</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <properties>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
+        <!-- Path to the Rise to Ruins game directory. Override in ~/.m2/settings.xml
+             or pass on the command line: mvn package -Drtr.home=/path/to/RtR -->
+        <rtr.home>${project.basedir}/../../RtR</rtr.home>
+    </properties>
+
+    <dependencies>
+        <!-- Mod API interfaces from the agent — compile only, provided at runtime -->
+        <dependency>
+            <groupId>rtrmodloader</groupId>
+            <artifactId>RtRModLoader</artifactId>
+            <version>1.0-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- Game classes — compile only, provided at runtime by the game -->
+        <dependency>
+            <groupId>rtr</groupId>
+            <artifactId>Core</artifactId>
+            <version>local</version>
+            <scope>system</scope>
+            <systemPath>${rtr.home}/Core.jar</systemPath>
+        </dependency>
+        <!-- Slick2D — compile only, provided at runtime by the game -->
+        <dependency>
+            <groupId>org.newdawn</groupId>
+            <artifactId>slick</artifactId>
+            <version>local</version>
+            <scope>system</scope>
+            <systemPath>${rtr.home}/lib/jars/slick.jar</systemPath>
+        </dependency>
+        <!-- LWJGL — needed to resolve Slick2D's transitive types at compile time -->
+        <dependency>
+            <groupId>org.lwjgl</groupId>
+            <artifactId>lwjgl</artifactId>
+            <version>local</version>
+            <scope>system</scope>
+            <systemPath>${rtr.home}/lib/jars/lwjgl.jar</systemPath>
+        </dependency>
+        <!-- Javassist for ModPatch implementations -->
+        <dependency>
+            <groupId>org.javassist</groupId>
+            <artifactId>javassist</artifactId>
+            <version>3.30.2-GA</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- WebSocket client for Archipelago server connection -->
+        <dependency>
+            <groupId>org.java-websocket</groupId>
+            <artifactId>Java-WebSocket</artifactId>
+            <version>1.5.4</version>
+        </dependency>
+        <!-- JSON for Archipelago protocol messages -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.10.1</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.5.3</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals><goal>shade</goal></goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

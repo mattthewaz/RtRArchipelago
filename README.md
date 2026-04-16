@@ -2,7 +2,8 @@
 
 Adds [Archipelago](https://archipelago.gg) multiworld randomizer support to Rise to Ruins. Goals become location checks, and buildings and spells are unlocked by receiving items from the multiworld.
 
-Requires [RtRModLoader](https://github.com/mattthewaz/RtRModLoader).
+Requires [RtRModLoader](https://github.com/mattthewaz/RtRModLoader) to run mod.
+Requires [RtRAPWorld](https://github.com/mattthewaz/RtRAPWorld) to generate multiworld randomizers.
 
 ## !!Your existing saves!!
 

@@ -20,6 +20,9 @@ public class SlotData {
     /** "2726305412" → "DEFORESTATION Tier 1" */
     public final Map<String, String> locationIdToName;
 
+    /** "2726305412" → "HOUSING" — item placed at each location */
+    public final Map<String, String> locationIdToItem;
+
     /** "Arcane Efficiency" → ["BANISH_SPELL_COST", "CHARM_SPELL_COST", ...] */
     public final Map<String, List<String>> perkBundles;
 
@@ -31,12 +34,14 @@ public class SlotData {
 
     private SlotData(Map<String, String> itemIdToName,
                      Map<String, String> locationIdToName,
+                     Map<String, String> locationIdToItem,
                      Map<String, List<String>> perkBundles,
                      Map<String, List<Long>> goalLocationMap,
                      int pureEssenceRequired,
                      int pureEssenceTotal) {
         this.itemIdToName        = itemIdToName;
         this.locationIdToName    = locationIdToName;
+        this.locationIdToItem    = locationIdToItem;
         this.perkBundles         = perkBundles;
         this.goalLocationMap     = goalLocationMap;
         this.pureEssenceRequired = pureEssenceRequired;
@@ -45,13 +50,14 @@ public class SlotData {
 
     public static SlotData parse(JsonObject json) {
         Gson gson = new Gson();
-        Type stringMap    = new TypeToken<Map<String, String>>(){}.getType();
+        Type stringMap     = new TypeToken<Map<String, String>>(){}.getType();
         Type perkBundleMap = new TypeToken<Map<String, List<String>>>(){}.getType();
-        Type goalLocMap   = new TypeToken<Map<String, List<Long>>>(){}.getType();
+        Type goalLocMap    = new TypeToken<Map<String, List<Long>>>(){}.getType();
 
         return new SlotData(
             gson.fromJson(json.get("item_id_to_name"),       stringMap),
             gson.fromJson(json.get("location_id_to_name"),   stringMap),
+            json.has("location_id_to_item") ? gson.fromJson(json.get("location_id_to_item"), stringMap) : null,
             gson.fromJson(json.get("perk_bundles"),           perkBundleMap),
             gson.fromJson(json.get("goal_location_map"),      goalLocMap),
             json.get("pure_essence_required").getAsInt(),

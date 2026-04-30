@@ -64,6 +64,9 @@ public class ArchipelagoRuntime {
     // Number of Cache of Supplies items waiting to be spawned in a play-state map.
     private final AtomicInteger pendingCacheOfSupplies = new AtomicInteger(0);
 
+    // Number of World Map Chests to grant, drained on the game thread from the world map.
+    private final AtomicInteger pendingWorldMapChests = new AtomicInteger(0);
+
     /**
      * Tracks one active "supply drop" that is dripping resources over many ticks.
      * Mirrors the loot box drip mechanic: one item spawned per tick (every 5 ticks),
@@ -240,6 +243,7 @@ public class ArchipelagoRuntime {
         pendingAncientRelics.set(0);
         pendingDivineSparks.set(0);
         pendingCacheOfSupplies.set(0);
+        pendingWorldMapChests.set(0);
         originalGoalAmounts.clear();
         activeSupplyDrops.clear();
         pendingBanners.clear();
@@ -288,6 +292,11 @@ public class ArchipelagoRuntime {
             pendingBanners.add(itemName);
             System.out.println("[Archipelago] Received Ancient Relic — queued for random perk");
 
+        } else if ("World Map Chest".equals(itemName)) {
+            pendingWorldMapChests.incrementAndGet();
+            pendingBanners.add(itemName);
+            System.out.println("[Archipelago] Received World Map Chest — queued for world map");
+
         } else if (FILLER_ITEMS.contains(itemName)) {
             pendingBanners.add(itemName);
             System.out.println("[Archipelago] Received filler: " + itemName);
@@ -329,6 +338,11 @@ public class ArchipelagoRuntime {
         System.out.println("[Archipelago] Check: " + goalTypeName
             + " tier " + (tierIndex + 1) + " → id " + locationId);
         if (client != null) client.sendLocationCheck(locationId);
+        String locationName = slotData.locationIdToName.getOrDefault(String.valueOf(locationId), goalTypeName);
+        String itemAtLocation = slotData.locationIdToItem != null
+            ? slotData.locationIdToItem.getOrDefault(String.valueOf(locationId), "?")
+            : "?";
+        rtr.console.Console.out("[AP] Sent check: " + locationName + " → " + itemAtLocation, false);
 
         if (state != null) {
             state.claimedTierCounts = new HashMap<>(claimedTierCounts());
@@ -348,6 +362,7 @@ public class ArchipelagoRuntime {
         drainDivineSparks();
         drainPerkQueue();
         drainCacheOfSupplies();
+        drainWorldMapChests();
     }
 
     private void drainDivineSparks() {
@@ -370,6 +385,7 @@ public class ArchipelagoRuntime {
         String bannerText;
         while ((bannerText = pendingBanners.poll()) != null) {
             rtr.console.Console.newBanner("Item Received", bannerText);
+            rtr.console.Console.out("[AP] Received: " + bannerText, false);
         }
     }
 
@@ -390,6 +406,19 @@ public class ArchipelagoRuntime {
                 worldSave.fullSaveSingleThreaded();
                 requestPerkListRefresh();
                 System.out.println("[Archipelago] Granted " + relics + " random perk(s) from Ancient Relic(s): " + granted.toString());
+                for (PerkModule.Perk perk : granted) {
+                    PerkModule.PerkType pt = perk.getPerkType();
+                    double val = perk.getValue();
+                    String effect;
+                    switch (pt.getDataFormat()) {
+                        case PERCENT:          effect = "+" + (int)Math.round(val * 100) + "% " + pt.getPerkName(); break;
+                        case PERCENT_NEGATIVE: effect = (int)Math.round(val * 100) + "% " + pt.getPerkName(); break;
+                        case SECONDS:          effect = "+" + val + "s " + pt.getPerkName(); break;
+                        case SECONDS_NEGATIVE: effect = val + "s " + pt.getPerkName(); break;
+                        default:               effect = "+" + (int)Math.round(val) + " " + pt.getPerkName(); break;
+                    }
+                    rtr.console.Console.out("[AP] Ancient Relic: " + perk.getPerkName() + " (" + effect + ")", false);
+                }
             } catch (Exception e) {
                 System.out.println("[Archipelago] Failed to grant random perk(s): " + e.getMessage());
                 e.printStackTrace();
@@ -476,6 +505,34 @@ public class ArchipelagoRuntime {
     // -------------------------------------------------------------------------
 
     /**
+     * Drains pending World Map Chests. Each chest is granted via ChestModule.grantChest() with a
+     * random tier (1–3). Guard: modules must be loaded and ChestModule must be available, but does
+     * NOT require a play-state map — chests live on the world map, not in the village.
+     */
+    private void drainWorldMapChests() {
+        int chests = pendingWorldMapChests.getAndSet(0);
+        if (chests == 0) return;
+        if (!rtr.system.Game.getCS().isModulesLoaded()) {
+            pendingWorldMapChests.addAndGet(chests);
+            return;
+        }
+        rtr.chest.ChestModule chestModule = (rtr.chest.ChestModule) StateBase.getModule(ModuleType.CHEST);
+        if (chestModule == null) {
+            pendingWorldMapChests.addAndGet(chests);
+            return;
+        }
+        for (int i = 0; i < chests; i++) {
+            try {
+                int tier = (int)(Math.random() * 3) + 1;
+                chestModule.grantChest(tier);
+                System.out.println("[Archipelago] World Map Chest: granted tier " + tier + " chest");
+            } catch (Exception e) {
+                System.out.println("[Archipelago] World Map Chest: failed to grant chest: " + e.getMessage());
+            }
+        }
+    }
+
+    /**
      * Returns the per-tier goalAmountRequired for a multi-tier AP goal: originalAmount / tierCount.
      * For goals not in the AP pool or with only 1 tier, returns currentAmount unchanged.
      *
@@ -493,6 +550,12 @@ public class ArchipelagoRuntime {
         originalGoalAmounts.putIfAbsent(goalType, currentAmount);
         int original = originalGoalAmounts.get(goalType);
         return Math.max(1, original / locationIds.size());
+    }
+
+    /** Returns the original (pre-division) goalAmountRequired for a goal, or 0 if not yet captured. */
+    public int getOriginalAmountRequired(String goalType) {
+        Integer original = originalGoalAmounts.get(goalType);
+        return original != null ? original : 0;
     }
 
     /** Returns true if the building/spell with this name has been received, or if not connected. */

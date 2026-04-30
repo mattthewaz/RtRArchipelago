@@ -19,11 +19,15 @@ public class ArchipelagoMod implements RtRMod {
         patches.put("rtr/system/Game",
             Collections.singletonList(new ArchipelagoInitPatch()));
         patches.put("rtr/goal/Goal",
-            Collections.singletonList(new GoalCompletePatch()));
+            Arrays.asList(new GoalCompletePatch(), new GoalLockPatch()));
+        patches.put("rtr/goal/GoalModule",
+            Collections.singletonList(new GoalModulePatch()));
         patches.put("rtr/influence/SpellBase",
             Collections.singletonList(new SpellGatePatch()));
         patches.put("rtr/gui/buttons/GUIPanelButton",
             Collections.singletonList(new BuildingGatePatch()));
+        patches.put("rtr/gui/buttons/GUIButtonGoalStats",
+            Collections.singletonList(new GoalStatsPatch()));
         patches.put("rtr/states/WorldMapState",
             Collections.singletonList(new WorldMapStatePatch()));
         patches.put("rtr/states/StateBase",

@@ -15,6 +15,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Runtime singleton for the Archipelago mod. Created on the game thread via
@@ -56,6 +57,14 @@ public class ArchipelagoRuntime {
 
     // Item names queued for on-screen banner display (game thread only).
     private final ConcurrentLinkedQueue<String> pendingBanners = new ConcurrentLinkedQueue<>();
+
+    // Plain console messages queued from the WebSocket thread (connection events etc.).
+    private final ConcurrentLinkedQueue<String> pendingConsoleMessages = new ConcurrentLinkedQueue<>();
+
+    // Reconnect backoff state. reconnectAt=0 means no reconnect pending.
+    // Set by WebSocket thread on disconnect; cleared/acted on by game thread in drainPendingChanges.
+    private final AtomicLong reconnectAt = new AtomicLong(0);
+    private final AtomicInteger reconnectAttempt = new AtomicInteger(0);
 
     // Original goalAmountRequired values, captured before we divide them for multi-tier goals.
     // ConcurrentHashMap because addAmount() (game thread) and tearDown() (game thread) both touch it.
@@ -209,12 +218,21 @@ public class ArchipelagoRuntime {
 
                     System.out.println("[Archipelago] Connected — need " + data.pureEssenceRequired
                         + " / " + data.pureEssenceTotal + " Pure Essence to win");
+                    reconnectAttempt.set(0);
+                    reconnectAt.set(0);
+                    pendingConsoleMessages.add("[AP] Connected to " + config.server + " as " + slotName);
                 }
                 public void onRefused(List<String> errors) {
                     System.out.println("[Archipelago] Connection refused: " + errors);
+                    pendingConsoleMessages.add("[AP] Connection refused: " + errors);
                 }
                 public void onDisconnected() {
                     System.out.println("[Archipelago] Disconnected");
+                    pendingConsoleMessages.add("[AP] Disconnected from Archipelago server");
+                    int attempt = reconnectAttempt.getAndIncrement();
+                    long delayMs = Math.min(5000L * (1L << attempt), 60000L);
+                    reconnectAt.set(System.currentTimeMillis() + delayMs);
+                    pendingConsoleMessages.add("[AP] Reconnecting in " + (delayMs / 1000) + "s...");
                 }
             });
 
@@ -227,6 +245,7 @@ public class ArchipelagoRuntime {
             client.connectBlocking();
         } catch (Exception e) {
             System.out.println("[Archipelago] Failed to start client: " + e.getMessage());
+            pendingConsoleMessages.add("[AP] Failed to connect: " + e.getMessage());
         }
     }
 
@@ -247,6 +266,9 @@ public class ArchipelagoRuntime {
         originalGoalAmounts.clear();
         activeSupplyDrops.clear();
         pendingBanners.clear();
+        pendingConsoleMessages.clear();
+        reconnectAt.set(0);
+        reconnectAttempt.set(0);
         _claimedTierCounts.clear();
     }
 
@@ -358,11 +380,22 @@ public class ArchipelagoRuntime {
     // -------------------------------------------------------------------------
 
     public void drainPendingChanges() {
+        drainReconnect();
         drainBanners();
         drainDivineSparks();
         drainPerkQueue();
         drainCacheOfSupplies();
         drainWorldMapChests();
+    }
+
+    private void drainReconnect() {
+        long at = reconnectAt.get();
+        if (at == 0 || System.currentTimeMillis() < at) return;
+        if (!reconnectAt.compareAndSet(at, 0)) return; // another tick already claimed it
+        if (pendingConfig == null) return;
+        if (client != null && client.isOpen()) return;
+        System.out.println("[Archipelago] Attempting reconnect (attempt " + reconnectAttempt.get() + ")");
+        startClient(pendingConfig);
     }
 
     private void drainDivineSparks() {
@@ -382,6 +415,10 @@ public class ArchipelagoRuntime {
     }
 
     private void drainBanners() {
+        String msg;
+        while ((msg = pendingConsoleMessages.poll()) != null) {
+            rtr.console.Console.out(msg, false);
+        }
         String bannerText;
         while ((bannerText = pendingBanners.poll()) != null) {
             rtr.console.Console.newBanner("Item Received", bannerText);

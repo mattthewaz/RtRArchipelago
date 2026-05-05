@@ -32,31 +32,10 @@ public class ArchipelagoMod implements RtRMod {
             Collections.singletonList(new WorldMapStatePatch()));
         patches.put("rtr/states/StateBase",
             Collections.singletonList(new StateBasePatch()));
-
-        ProfileDirPatch profileDirPatch = new ProfileDirPatch();
-        String[] profileDirClasses = {
-            "rtr/ProfileModule",
-            "rtr/SettingsParser",
-            "rtr/gui/states/WorldMapGUIData",
-            "rtr/gui/states/mainmenu/SelectProfilePanel",
-            "rtr/gui/states/shared/SettingsPanel",
-            "rtr/gui/states/worldmap/GameModeConfigPanel",
-            "rtr/help/HelpModule",
-            "rtr/save/RegionalSavedGame",
-            "rtr/save/SaveModule",
-            "rtr/save/SavedGamesHandler",
-            "rtr/save/WorldSavedGame",
-            "rtr/states/MapEditorState",
-            "rtr/states/MainMenuState",
-            "rtr/states/PlayState",
-            "rtr/system/gamemodetemplates/GameModeTemplateBase",
-            "rtr/utilities/Utilities",
-        };
-        for (String cls : profileDirClasses) {
-            patches.put(cls, new ArrayList<>(Collections.singletonList(profileDirPatch)));
-        }
-        patches.get("rtr/ProfileModule").add(new ProfileLoadPatch());
-        patches.get("rtr/states/MainMenuState").add(new MainMenuStatePatch());
+        patches.put("rtr/ProfileModule",
+            Collections.singletonList(new ProfileLoadPatch()));
+        patches.put("rtr/states/MainMenuState", 
+            Collections.singletonList(new MainMenuStatePatch()));
         patches.put("rtr/gui/states/mainmenu/NewProfilePanel",
             Collections.singletonList(new NewProfilePanelPatch()));
         patches.put("rtr/gui/states/mainmenu/MainMenuPanel",

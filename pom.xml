@@ -6,7 +6,7 @@
 
     <groupId>rtrmodloader.mods</groupId>
     <artifactId>Archipelago</artifactId>
-    <version>0.2</version>
+    <version>0.3</version>
     <packaging>jar</packaging>
 
     <properties>
@@ -22,7 +22,7 @@
         <dependency>
             <groupId>rtrmodloader</groupId>
             <artifactId>RtRModLoader</artifactId>
-            <version>0.1</version>
+            <version>0.2</version>
             <scope>provided</scope>
         </dependency>
         <!-- Game classes — compile only, provided at runtime by the game -->

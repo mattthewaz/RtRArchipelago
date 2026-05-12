@@ -5,10 +5,6 @@ Adds [Archipelago](https://archipelago.gg) multiworld randomizer support to Rise
 Requires [RtRModLoader](https://github.com/mattthewaz/RtRModLoader) to run mod.
 Requires [RtRAPWorld](https://github.com/mattthewaz/RtRAPWorld) to generate multiworld randomizers.
 
-## !!Your existing saves!!
-
-The mod redirects AP game profiles to a separate `ap_profiles/` directory, so your existing vanilla profiles should be completely unaffected. That said, the mod does patch core game systems, and bugs happen — **it's worth backing up your `profiles/` folder before playing with the mod installed.**
-
 ## Installation
 
 1. Install RtRModLoader if you haven't already — see its README for instructions. 
